@@ -118,8 +118,7 @@ class TerraformValidator:
             Dictionary with validation results
         """
         issues = {
-            'missing_descriptions': [],
-            'missing_defaults': []
+            'missing_descriptions': []
         }
         
         variables_file = directory / 'variables.tf'
@@ -127,36 +126,32 @@ class TerraformValidator:
             return issues
             
         # Simple parsing - look for variable blocks
+        # Note: For production use, consider using python-hcl2 for more robust parsing
         with open(variables_file, 'r') as f:
             content = f.read()
             
-        # This is a basic check - a proper parser would be better
+        # Basic check for variable blocks without descriptions
         in_variable = False
         current_var = None
         has_description = False
-        has_default = False
         
         for line in content.split('\n'):
             line = line.strip()
             
             if line.startswith('variable'):
                 if current_var and in_variable:
-                    # Check previous variable
+                    # Check previous variable for description
                     if not has_description:
                         issues['missing_descriptions'].append(current_var)
-                    # Only required variables need defaults
                     
                 # Start new variable
                 current_var = line.split('"')[1] if '"' in line else None
                 in_variable = True
                 has_description = False
-                has_default = False
                 
             elif in_variable:
                 if 'description' in line:
                     has_description = True
-                if 'default' in line:
-                    has_default = True
                 if line == '}' and current_var:
                     # End of variable block
                     if not has_description:
