@@ -1,0 +1,21 @@
+# Production Environment Configuration
+# Copy this file to terraform.tfvars and adjust values as needed
+
+aws_region = "us-east-1"
+
+vpc_cidr             = "10.1.0.0/16"
+public_subnet_cidrs  = ["10.1.1.0/24", "10.1.2.0/24"]
+private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+ecr_repository_name = "cicd-demo-app"
+ecs_cluster_name    = "cicd-demo-cluster"
+ecs_service_name    = "cicd-demo-service"
+container_name      = "cicd-demo-app"
+container_port      = 3000
+
+# Set to true to enable GitHub OIDC authentication instead of access keys
+enable_github_oidc = false
+
+# GitHub repository in format "owner/repo"
+github_repo = "iotda-ol/rsa2-mlaw-github-actions-ecs-cicd"
