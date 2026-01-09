@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log
+package-lock.json
+.env
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*.lcov
+
+# Logs
+logs/
+*.log
+
+# Docker
+.dockerignore
+
+# Build artifacts
+dist/
+build/

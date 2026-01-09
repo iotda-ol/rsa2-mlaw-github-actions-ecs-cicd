@@ -1,0 +1,97 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - development
+          - production
+      task_definition_revision:
+        description: 'Task definition revision to rollback to (optional - will use previous if not specified)'
+        required: false
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: cicd-demo-cluster
+  ECS_SERVICE: cicd-demo-service
+
+jobs:
+  rollback:
+    name: Rollback to Previous Version
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get current task definition
+        id: current-task-def
+        run: |
+          CLUSTER_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          SERVICE_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          
+          CURRENT_TASK_DEF=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }}${CLUSTER_SUFFIX} \
+            --services ${{ env.ECS_SERVICE }}${SERVICE_SUFFIX} \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          
+          echo "current-task-def=${CURRENT_TASK_DEF}" >> $GITHUB_OUTPUT
+          echo "Current task definition: ${CURRENT_TASK_DEF}"
+
+      - name: Determine rollback task definition
+        id: rollback-task-def
+        run: |
+          if [ -n "${{ github.event.inputs.task_definition_revision }}" ]; then
+            TASK_DEF_FAMILY="cicd-demo-${{ github.event.inputs.environment == 'production' && 'prod' || 'dev' }}"
+            ROLLBACK_TASK_DEF="${TASK_DEF_FAMILY}:${{ github.event.inputs.task_definition_revision }}"
+          else
+            # Get the previous task definition revision
+            TASK_DEF_FAMILY=$(echo "${{ steps.current-task-def.outputs.current-task-def }}" | cut -d':' -f1)
+            CURRENT_REVISION=$(echo "${{ steps.current-task-def.outputs.current-task-def }}" | cut -d':' -f2)
+            PREVIOUS_REVISION=$((CURRENT_REVISION - 1))
+            ROLLBACK_TASK_DEF="${TASK_DEF_FAMILY}:${PREVIOUS_REVISION}"
+          fi
+          
+          echo "rollback-task-def=${ROLLBACK_TASK_DEF}" >> $GITHUB_OUTPUT
+          echo "Rolling back to: ${ROLLBACK_TASK_DEF}"
+
+      - name: Update ECS service with rollback task definition
+        run: |
+          CLUSTER_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          SERVICE_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }}${CLUSTER_SUFFIX} \
+            --service ${{ env.ECS_SERVICE }}${SERVICE_SUFFIX} \
+            --task-definition ${{ steps.rollback-task-def.outputs.rollback-task-def }} \
+            --force-new-deployment
+
+      - name: Wait for service stability
+        run: |
+          CLUSTER_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          SERVICE_SUFFIX=${{ github.event.inputs.environment == 'production' && '-prod' || '-dev' }}
+          
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }}${CLUSTER_SUFFIX} \
+            --services ${{ env.ECS_SERVICE }}${SERVICE_SUFFIX}
+
+      - name: Verify rollback
+        run: |
+          echo "✅ Rollback completed successfully"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Rolled back to: ${{ steps.rollback-task-def.outputs.rollback-task-def }}"
+          echo "Previous task definition: ${{ steps.current-task-def.outputs.current-task-def }}"
