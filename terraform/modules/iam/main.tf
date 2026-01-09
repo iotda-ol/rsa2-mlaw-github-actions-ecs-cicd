@@ -101,6 +101,8 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
     "sts.amazonaws.com"
   ]
 
+  # GitHub's OIDC thumbprint (valid as of 2024)
+  # Reference: https://github.blog/changelog/2022-01-13-github-actions-update-on-oidc-based-deployments-to-aws/
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1"
   ]

@@ -218,8 +218,8 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}-prod
           wait-for-service-stability: true
           codedeploy-appspec: appspec.yaml
-          codedeploy-application: cicd-demo-app
-          codedeploy-deployment-group: cicd-demo-dg
+          codedeploy-application: prod-cicd-demo-service-app
+          codedeploy-deployment-group: prod-cicd-demo-service-dg
 
       - name: Validate deployment
         run: |
