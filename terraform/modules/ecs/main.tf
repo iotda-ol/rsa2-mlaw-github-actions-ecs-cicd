@@ -312,38 +312,3 @@ resource "aws_codedeploy_deployment_group" "main" {
 
   tags = var.tags
 }
-
-output "cluster_id" {
-  description = "ID of the ECS cluster"
-  value       = aws_ecs_cluster.main.id
-}
-
-output "cluster_name" {
-  description = "Name of the ECS cluster"
-  value       = aws_ecs_cluster.main.name
-}
-
-output "service_name" {
-  description = "Name of the ECS service"
-  value       = aws_ecs_service.main.name
-}
-
-output "alb_dns_name" {
-  description = "DNS name of the load balancer"
-  value       = aws_lb.main.dns_name
-}
-
-output "task_definition_arn" {
-  description = "ARN of the task definition"
-  value       = aws_ecs_task_definition.main.arn
-}
-
-output "blue_target_group_name" {
-  description = "Name of the blue target group"
-  value       = aws_lb_target_group.blue.name
-}
-
-output "green_target_group_name" {
-  description = "Name of the green target group"
-  value       = aws_lb_target_group.green.name
-}
